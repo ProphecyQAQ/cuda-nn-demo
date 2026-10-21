@@ -1,0 +1,17 @@
+# Build artefacts
+build/
+cmake-build-*/
+compile_commands.json
+
+# Demo output
+output/
+
+# Fetched dependencies (restored by scripts/setup_deps.sh)
+third_party/tiny-cuda-nn/
+third_party/stb-src/
+
+# Editors / OS clutter
+.vscode/
+.idea/
+*.swp
+.DS_Store

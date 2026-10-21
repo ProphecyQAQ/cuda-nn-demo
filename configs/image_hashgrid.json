@@ -1,0 +1,34 @@
+{
+    "loss": {
+        "otype": "RelativeL2"
+    },
+    "optimizer": {
+        "otype": "Adam",
+        "learning_rate": 1e-2,
+        "beta1": 0.9,
+        "beta2": 0.99,
+        "l2_reg": 0.0
+    },
+    "encoding": {
+        "otype": "HashGrid",
+        "n_levels": 16,
+        "n_features_per_level": 2,
+        "log2_hashmap_size": 19,
+        "base_resolution": 16,
+        "per_level_scale": 1.5,
+        "interpolation": "Linear"
+    },
+    "network": {
+        "otype": "FullyFusedMLP",
+        "n_neurons": 64,
+        "n_hidden_layers": 2,
+        "activation": "ReLU",
+        "output_activation": "None"
+    },
+    "train": {
+        "batch_size": 65536,
+        "n_steps": 2000,
+        "save_every": 250,
+        "seed": 1337
+    }
+}
