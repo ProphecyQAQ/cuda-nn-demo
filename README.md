@@ -28,15 +28,16 @@ tiny-cuda-nn-demo/
 │   ├── build.sh                # 配置 + 编译
 │   └── run.sh                  # 运行
 ├── src/
-│   ├── tcnn_demo.cu            # 主程序：采样、训练、推理、保存
-│   ├── image_io.h / .cpp       # stb_image 封装（读写图片）
-│   ├── cli.h                   # 命令行解析
-│   └── demo_config.h.in        # CMake 生成的头文件（源码目录等）
+│   └── main.cpp                # 唯一源文件：stb 读写、CLI、采样 kernel、训练、推理
 ├── third_party/
 │   ├── stb/                    # stb_image.h + stb_image_write.h（已内置）
 │   └── tiny-cuda-nn/           # 由 scripts/setup_deps.sh 拉取（固定 commit）
 └── output/                     # 运行产物
 ```
+
+整个工程只有 `src/main.cpp` 一个源文件（没有 `.cu`）。该文件内含一个双线性采样 kernel，
+因此 CMake 通过 `set_source_files_properties(src/main.cpp PROPERTIES LANGUAGE CUDA)` 让 nvcc
+编译它；同时 tiny-cuda-nn 的模板（`network_precision_t`）也只在 nvcc 下才可用。
 
 ## 环境要求
 
@@ -169,6 +170,12 @@ JIT 用 NVRTC 在运行时编译 kernel，生成的 PTX 版本由 CUDA Toolkit �
 Toolkit 旧（例如驱动 591.59 对应 CUDA 13.1，而 Toolkit 是 13.4），驱动会拒绝加载。
 本 demo 会在启动时检测并自动关闭 JIT（训练仍然正常，速度略低）。升级驱动即可开启，
 也可以手动加 `--no-jit` 消除提示。
+
+**为什么 main.cpp 需要 nvcc 编译**
+
+tiny-cuda-nn 是纯 CUDA 库，`network_precision_t` 等类型只在 `__CUDACC__` 下定义；而且
+`main.cpp` 里有一个采样 kernel。所以 CMake 把这个 `.cpp` 标记为 CUDA 源文件，工程中不需要
+单独的 `.cu` 文件。
 
 **显存不足**
 

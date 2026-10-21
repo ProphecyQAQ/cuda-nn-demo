@@ -9,7 +9,7 @@ if (NOT DEFINED CMAKE_CUDA_COMPILER AND NOT DEFINED ENV{CUDACXX})
 endif()
 
 project(tiny-cuda-nn-demo
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "Fit a 2D image with tiny-cuda-nn (hash grid + MLP)"
     LANGUAGES CXX CUDA)
 
@@ -31,6 +31,8 @@ set(CMAKE_CUDA_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+find_package(CUDAToolkit REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Third-party: tiny-cuda-nn (build from the pinned clone in third_party/)
@@ -64,27 +66,17 @@ if (TCNN_CUDA_ARCHITECTURES)
 endif()
 
 # ---------------------------------------------------------------------------
-# image I/O (stb_image + stb_image_write)
+# Demo executable (a single translation unit)
 # ---------------------------------------------------------------------------
-add_library(demo_image_io STATIC src/image_io.cpp)
-target_include_directories(demo_image_io PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb")
+add_executable(tcnn_demo src/main.cpp)
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(demo_image_io PRIVATE -Wall -Wextra)
-endif()
+# main.cpp is ordinary C++ plus one sampling kernel. tiny-cuda-nn only
+# defines `tcnn::network_precision_t` when __CUDACC__ is set, so nvcc must compile it.
+set_source_files_properties(src/main.cpp PROPERTIES LANGUAGE CUDA)
 
-# ---------------------------------------------------------------------------
-# Demo executable
-# ---------------------------------------------------------------------------
-file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" DEMO_SOURCE_DIR)
-configure_file(src/demo_config.h.in "${CMAKE_CURRENT_BINARY_DIR}/generated/demo_config.h" @ONLY)
-
-add_executable(tcnn_demo src/tcnn_demo.cu)
-
-target_include_directories(tcnn_demo PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
-target_link_libraries(tcnn_demo PRIVATE tiny-cuda-nn demo_image_io)
+target_include_directories(tcnn_demo PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb")
+target_link_libraries(tcnn_demo PRIVATE tiny-cuda-nn CUDA::cudart)
+target_compile_features(tcnn_demo PRIVATE cuda_std_17)
 
 set_target_properties(tcnn_demo PROPERTIES
     CUDA_SEPARABLE_COMPILATION OFF
