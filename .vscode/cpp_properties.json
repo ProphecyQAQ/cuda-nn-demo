@@ -1,0 +1,38 @@
+{
+    // IntelliSense configuration for the single-file CUDA demo.
+    // tiny-cuda-nn is fetched by scripts/setup_deps.sh; build/_cmrc only exists
+    // after the first configure. __CUDACC__ is required so that tiny-cuda-nn
+    // defines network_precision_t; it only affects IntelliSense, never the
+    // real build (CMake compiles main.cpp with nvcc).
+    "configurations": [
+        {
+            "name": "Linux (CUDA, tiny-cuda-nn)",
+            "includePath": [
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/third_party/stb",
+                "${workspaceFolder}/third_party/tiny-cuda-nn/include",
+                "${workspaceFolder}/third_party/tiny-cuda-nn/dependencies",
+                "${workspaceFolder}/third_party/tiny-cuda-nn/dependencies/cutlass/include",
+                "${workspaceFolder}/third_party/tiny-cuda-nn/dependencies/cutlass/tools/util/include",
+                "${workspaceFolder}/third_party/tiny-cuda-nn/dependencies/fmt/include",
+                "${workspaceFolder}/build/_cmrc/include",
+                "/usr/local/cuda/include",
+                "/usr/local/cuda/targets/x86_64-linux/include",
+                "/usr/local/cuda/targets/x86_64-linux/include/cccl"
+            ],
+            "defines": [
+                "__CUDACC__",
+                "TCNN_HALF_PRECISION=1",
+                "TCNN_MIN_GPU_ARCH=120",
+                "TCNN_CMRC",
+                "TCNN_RTC",
+                "TCNN_RTC_USE_FAST_MATH"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

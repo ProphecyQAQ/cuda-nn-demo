@@ -21,6 +21,8 @@ tiny-cuda-nn-demo/
 ├── CMakeLists.txt              # 构建入口
 ├── README.md
 ├── .gitignore
+├── .vscode/
+│   └── cpp_properties.json     # VS Code IntelliSense 头文件路径
 ├── configs/
 │   └── image_hashgrid.json     # HashGrid + MLP + Adam 配置
 ├── scripts/
@@ -153,6 +155,20 @@ cmake -S . -B build -DTCNN_CUDA_ARCHITECTURES=89   # 或 "89;120"
 
 > 注意：tiny-cuda-nn 会用自己的自动检测结果覆盖 `CMAKE_CUDA_ARCHITECTURES`，
 > 所以请通过 `TCNN_CUDA_ARCHITECTURES` 指定架构，本工程会同步给自己的 kernel。
+
+## VS Code / IntelliSense
+
+`.vscode/cpp_properties.json` 已经配好 IntelliSense 的头文件路径（`third_party/stb`、
+`third_party/tiny-cuda-nn`、cutlass、fmt、CUDA 等）以及 tiny-cuda-nn 的编译宏，
+打开工程后 `#include <stb_image.h>`、`#include <tiny-cuda-nn/...>` 不会再报“找不到文件”。
+
+C/C++ 扩展本身不认识 CUDA 语法，所以配置里把 `__global__`、`__device__` 等关键字
+定义成空宏，并把 `threadIdx`、`blockIdx` 等定义为常量——这些**只影响 IntelliSense**，
+真正的编译仍由 CMake 调用 nvcc 完成。第三方 CUDA 头文件里仍可能出现少量波浪线，
+属于扩展的解析限制，不影响构建和运行。
+
+第一次 clone 后请先跑一次 `./scripts/build.sh`（生成 `build/_cmrc/include`），
+再在 VS Code 里执行 “C/C++: Reset IntelliSense Database”。
 
 ## 常见问题
 

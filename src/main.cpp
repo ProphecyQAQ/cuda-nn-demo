@@ -77,8 +77,8 @@ constexpr float kPi = 3.14159265358979323846f;
 // ===========================================================================
 
 __device__ __forceinline__ float4 fetch_clamped(const float* image, int width, int height, int x, int y) {
-    x = min(max(x, 0), width - 1);
-    y = min(max(y, 0), height - 1);
+    x = x < 0 ? 0 : (x >= width ? width - 1 : x);
+    y = y < 0 ? 0 : (y >= height ? height - 1 : y);
     const size_t offset = (static_cast<size_t>(y) * width + x) * 4;
     return make_float4(image[offset + 0], image[offset + 1], image[offset + 2], image[offset + 3]);
 }
