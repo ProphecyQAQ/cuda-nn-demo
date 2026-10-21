@@ -1,0 +1,9 @@
+{
+    // Use clangd as the only C++ language server; disable the C/C++ extension's
+    // IntelliSense so the two do not parse the same CUDA TU concurrently.
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.arguments": [
+        // Faster completion items (grouped overloads instead of full detail).
+        "--completion-style=bundled"
+    ]
+}

@@ -199,6 +199,26 @@ clangd 会以 CUDA 模式解析 `src/main.cpp`（而不是普通 C++），因此
 
 修改 `CMakeLists.txt` 或依赖后，重新跑一次 `./scripts/build.sh` 刷新数据库即可。
 
+### 补全慢怎么调
+
+`.clangd` 里已经针对补全延迟做了这些设置：
+
+- `Index.Background: Skip`：不再后台索引整个数据库（里面还有 tiny-cuda-nn RTC 生成的
+  几十个“每个头文件一个 .cpp”的 TU，索引它们很费 CPU）。
+- `Completion.AllScopes: No` + `HeaderInsertion: Never`：补全只查当前文件和 include 链，
+  不再每次按键都合并全工程符号、也不再为每个补全项计算缺失 include。
+- `Diagnostics.ClangTidy.Remove: ['*']`、`UnusedIncludes/MissingIncludes: None`：
+  关掉每次编辑后运行的 clang-tidy 和 include-cleaner。
+
+另外 `.vscode/settings.json` 里关闭了 C/C++ 扩展的 IntelliSense（避免和 clangd 同时解析），
+并把补全样式设为 `bundled`。改完配置后，在命令面板执行 **clangd: Restart language server**。
+
+这个 TU 的 preamble（tiny-cuda-nn + CUDA + stb 实现）大约 23 MB，冷启动 1~3 秒是正常的；
+后续补全通常在 100~300 ms。若仍然明显卡顿，可以进一步：
+
+- 去掉用不到的 umbrella 头文件（例如只用到网络/训练器时不必 include `tiny-cuda-nn/config.h`）。
+- 把 `STB_IMAGE_IMPLEMENTATION` 拆到单独的 .cpp（单文件要求下则保持现状）。
+
 ## 常见问题
 
 **找不到 nvcc**

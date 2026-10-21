@@ -6,3 +6,24 @@ CompileFlags:
   # which trips tiny-cuda-nn's MIN_GPU_ARCH static_assert.
   Add:
     - --cuda-gpu-arch=sm_120
+
+# Completion latency ---------------------------------------------------------
+# Skip background indexing: the compilation database also contains tiny-cuda-nn's
+# RTC header-embedding TUs (one .cpp per header), which are expensive to index
+# and are not needed for day-to-day completion.
+Index:
+  Background: Skip
+
+# Only complete symbols from the current file and its includes instead of
+# merging every symbol from the index on each keystroke.
+Completion:
+  AllScopes: No
+  HeaderInsertion: Never
+
+# clang-tidy and include-cleaner run on every parse of this large CUDA TU and
+# add noticeable latency to completion. Enable them again when needed.
+Diagnostics:
+  ClangTidy:
+    Remove: ['*']
+  UnusedIncludes: None
+  MissingIncludes: None
