@@ -17,7 +17,7 @@
 ## 目录结构
 
 ```
-tiny-cuda-nn-demo/
+cuda-nn-demo/
 ├── CMakeLists.txt              # 构建入口
 ├── README.md
 ├── .gitignore
@@ -57,7 +57,7 @@ tiny-cuda-nn-demo/
 ## 快速开始
 
 ```bash
-cd /root/neural-render/tiny-cuda-nn-demo
+cd cuda-nn-demo
 
 ./scripts/setup_deps.sh   # 首次运行：clone tiny-cuda-nn（含 cutlass/fmt/cmrc 子模块）
 ./scripts/build.sh        # 配置 + 编译，产物在 build/tcnn_demo
