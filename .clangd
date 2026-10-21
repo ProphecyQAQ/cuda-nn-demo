@@ -1,0 +1,8 @@
+# clangd configuration.
+# CMake exports build/compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS=ON).
+CompileFlags:
+  CompilationDatabase: build
+  # main.cpp is built by nvcc for sm_120; clangd defaults to sm_52 otherwise,
+  # which trips tiny-cuda-nn's MIN_GPU_ARCH static_assert.
+  Add:
+    - --cuda-gpu-arch=sm_120

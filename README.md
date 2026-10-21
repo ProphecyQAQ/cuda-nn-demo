@@ -23,6 +23,7 @@ tiny-cuda-nn-demo/
 ├── .gitignore
 ├── .vscode/
 │   └── cpp_properties.json     # VS Code IntelliSense 头文件路径
+├── .clangd                     # clangd 配置（指向 build/compile_commands.json）
 ├── configs/
 │   └── image_hashgrid.json     # HashGrid + MLP + Adam 配置
 ├── scripts/
@@ -169,6 +170,34 @@ C/C++ 扩展本身不认识 CUDA 语法，所以配置里把 `__global__`、`__d
 
 第一次 clone 后请先跑一次 `./scripts/build.sh`（生成 `build/_cmrc/include`），
 再在 VS Code 里执行 “C/C++: Reset IntelliSense Database”。
+
+### clangd / compile_commands.json
+
+CMake 里开启了 `CMAKE_EXPORT_COMPILE_COMMANDS`，每次 configure 都会生成
+`build/compile_commands.json`（`./scripts/build.sh` 每次都会先 configure，所以它总是最新的）。
+为了让它对 clangd 可用，CMakeLists 里关闭了 nvcc 的 include 响应文件：
+
+```cmake
+set(CMAKE_CUDA_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
+```
+
+否则 nvcc 会把 `-I` 路径放进 `--options-file`，clangd 读不到这些路径，就会报找不到头文件。
+
+仓库根目录的 `.clangd` 负责把 clangd 指到数据库并指定 GPU 架构：
+
+```yaml
+CompileFlags:
+  CompilationDatabase: build
+  Add:
+    - --cuda-gpu-arch=sm_120
+```
+
+clangd 会以 CUDA 模式解析 `src/main.cpp`（而不是普通 C++），因此 `__global__`、
+`threadIdx` 等都能正确识别；`sm_120` 是为了匹配 tiny-cuda-nn 的 `TCNN_MIN_GPU_ARCH`
+静态断言。如果同时安装了 C/C++ 扩展，建议关闭它的 IntelliSense
+（`"C_Cpp.intelliSenseEngine": "disabled"`），避免和 clangd 两套提示互相干扰。
+
+修改 `CMakeLists.txt` 或依赖后，重新跑一次 `./scripts/build.sh` 刷新数据库即可。
 
 ## 常见问题
 

@@ -13,6 +13,11 @@ project(tiny-cuda-nn-demo
     DESCRIPTION "Fit a 2D image with tiny-cuda-nn (hash grid + MLP)"
     LANGUAGES CXX CUDA)
 
+# nvcc would otherwise pass all include paths through an --options-file, which
+# tools that parse compile_commands.json (clangd, ...) cannot expand. Keeping
+# them on the command line makes the compilation database self-contained.
+set(CMAKE_CUDA_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
+
 # ---------------------------------------------------------------------------
 # Global settings
 # ---------------------------------------------------------------------------
