@@ -2,6 +2,10 @@
     // Use clangd as the only C++ language server; disable the C/C++ extension's
     // IntelliSense so the two do not parse the same CUDA TU concurrently.
     "C_Cpp.intelliSenseEngine": "disabled",
+    // clangd must be >= 23 here: 18 does not know sm_120 (Blackwell), and
+    // 18/20 cannot parse the CUDA 13.x headers this project builds against
+    // (they fail inside crt/math_functions.hpp). See scripts/setup_clangd.sh.
+    "clangd.path": "/usr/bin/clangd-23",
     "clangd.arguments": [
         // Faster completion items (grouped overloads instead of full detail).
         "--completion-style=bundled"

@@ -2,10 +2,22 @@
 # CMake exports build/compile_commands.json (CMAKE_EXPORT_COMPILE_COMMANDS=ON).
 CompileFlags:
   CompilationDatabase: build
-  # main.cpp is built by nvcc for sm_120; clangd defaults to sm_52 otherwise,
-  # which trips tiny-cuda-nn's MIN_GPU_ARCH static_assert.
+  # nvcc-only switches. clang's driver rejects them, and one unknown argument
+  # is enough for clangd to abort with "Could not build CompilerInvocation".
+  Remove:
+    - -forward-unknown-to-host-compiler
+    - --generate-code=*
+    - -Xcompiler=*
+    - -Xcudafe=*
+    - --use_fast_math
+    - --extended-lambda
+    - --expt-relaxed-constexpr
   Add:
+    # main.cpp is built by nvcc for sm_120; clangd defaults to sm_52 otherwise,
+    # which trips tiny-cuda-nn's MIN_GPU_ARCH static_assert.
     - --cuda-gpu-arch=sm_120
+    # nvcc is not a clang driver, so clangd cannot infer the toolkit root.
+    - --cuda-path=/usr/local/cuda
 
 # Completion latency ---------------------------------------------------------
 # Skip background indexing: the compilation database also contains tiny-cuda-nn's
@@ -18,7 +30,6 @@ Index:
 # merging every symbol from the index on each keystroke.
 Completion:
   AllScopes: No
-  HeaderInsertion: Never
 
 # clang-tidy and include-cleaner run on every parse of this large CUDA TU and
 # add noticeable latency to completion. Enable them again when needed.
