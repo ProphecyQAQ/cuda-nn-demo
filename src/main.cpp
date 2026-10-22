@@ -137,7 +137,7 @@ public:
             {"otype", "FullyFusedMLP"},
             {"activation", "ReLU"},
             {"output_activation", "None"},
-            {"n_neurons", 64},
+            {"n_neuron s", 64},
             {"n_hidden_layers", 2},
         }},
     };
