@@ -13,6 +13,18 @@ __global__ void vecAdd_onebyone(float* a, float* b, float* c, int size)
     }
 }
 
+__global__ void vecAdd_stride(float* a, float* b, float* c, int size)
+{
+    uint32_t t_total = gridDim.x * gridDim.y * blockDim.x * blockDim.y;
+    uint32_t g_blockIdx = gridDim.x * blockIdx.y + blockIdx.x;
+    uint32_t start_idx = (g_blockIdx * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x);
+
+    for (size_t idx = start_idx; idx < size; idx += t_total)
+    {
+        c[idx] = a[idx] + b[idx];
+    }
+}
+
 void initialize(std::vector<float>& vec)
 {
     for (size_t i = 0; i < vec.size(); i ++)
@@ -43,6 +55,21 @@ int main()
     dim3 threadsPerBlock(256);
     dim3 blocksPerGrid((size + 256 - 1)/256);
     vecAdd_onebyone<<<blocksPerGrid, threadsPerBlock>>>(gpu_a, gpu_b, gpu_c, size);
+    CUDA_CHECK_LAST();
+    CUDA_CHECK_SYNC();
+
+    CUDA_CHECK(cudaMemcpy(cpu_c.data(), gpu_c, size * sizeof(float), cudaMemcpyDeviceToHost));
+
+    for (auto val : cpu_c)
+    {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
+    const int n = 32;
+    dim3 threadsPerBlock1(n);
+    dim3 blocksPerGrid1(2);
+    vecAdd_stride<<<blocksPerGrid1, threadsPerBlock1>>>(gpu_a, gpu_b, gpu_c, size);
     CUDA_CHECK_LAST();
     CUDA_CHECK_SYNC();
 
