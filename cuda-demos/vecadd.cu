@@ -1,7 +1,8 @@
+#include <cstring>
 #include <iostream>
 #include <vector>
 #include <cstdint>
-#include "cuda_check.h"
+#include "cuda_common.h"
 
 __global__ void vecAdd_onebyone(float* a, float* b, float* c, int size)
 {
@@ -33,9 +34,44 @@ void initialize(std::vector<float>& vec)
     }
 }
 
+// 返回不匹配的元素个数，0 表示通过
+uint64_t validation(const std::vector<float>& a, const std::vector<float>& b,
+                    const std::vector<float>& c)
+{
+    uint64_t cnt = 0;
+    for (size_t id = 0; id < a.size(); id ++)
+    {
+        if (c[id] != a[id] + b[id])
+        {
+            cnt ++;
+        }
+    }
+    return cnt;
+}
+
+int getTotalSMNum()
+{
+    int num = 0;
+    CUDA_CHECK(cudaDeviceGetAttribute(&num, cudaDevAttrMultiProcessorCount, 0));   
+    return num;
+}
+
+int getMaxThreadsNumPerSM()
+{
+    int num = 0;
+    CUDA_CHECK(cudaDeviceGetAttribute(&num, cudaDevAttrMaxThreadsPerMultiProcessor, 0));   
+    return num;
+}
+
+// 全卡同时能驻留多少线程
+int getMaxThreadsNum()
+{
+    return getTotalSMNum() * getMaxThreadsNumPerSM();
+}
+
 int main()
 {
-    constexpr int size = 512;
+    constexpr int size = 64u << 20;
     std::vector<float> cpu_a(size, 1.f);
     std::vector<float> cpu_b(size, 0.f);
     std::vector<float> cpu_c(size, 0.f);
@@ -51,35 +87,42 @@ int main()
     CUDA_CHECK(cudaMemcpy(gpu_a, cpu_a.data(), size * sizeof(float), cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(gpu_b, cpu_b.data(), size * sizeof(float), cudaMemcpyHostToDevice));
 
-    // one by one
+    const double bytes3 = 3.0 * size * sizeof(float);     // 读 a + 读 b + 写 c
+    const double bytes2 = 2.0 * size * sizeof(float);     // 只读 + 写（memcpy 基线）
+    const double peak   = getTheoreticalPeakGBs();
+
+    BenchReport report;
+
+    CUDA_CHECK(cudaMemset(gpu_c, 0xFF, sizeof(float) * size));   // 哨兵：没被写的元素会保持 NaN
+
     dim3 threadsPerBlock(256);
     dim3 blocksPerGrid((size + 256 - 1)/256);
-    vecAdd_onebyone<<<blocksPerGrid, threadsPerBlock>>>(gpu_a, gpu_b, gpu_c, size);
-    CUDA_CHECK_LAST();
-    CUDA_CHECK_SYNC();
 
+    TimerScope::Timing t1 = TimerScope::timer_kernel([&]{
+        vecAdd_onebyone<<<blocksPerGrid, threadsPerBlock>>>(gpu_a, gpu_b, gpu_c, size);
+    });
     CUDA_CHECK(cudaMemcpy(cpu_c.data(), gpu_c, size * sizeof(float), cudaMemcpyDeviceToHost));
+    report.add("one-by-one", t1, bytes3, (long long)validation(cpu_a, cpu_b, cpu_c));
 
-    for (auto val : cpu_c)
-    {
-        std::cout << val << " ";
-    }
-    std::cout << std::endl;
+    CUDA_CHECK(cudaMemset(gpu_c, 0xFF, sizeof(float) * size));
 
-    const int n = 32;
-    dim3 threadsPerBlock1(n);
-    dim3 blocksPerGrid1(2);
-    vecAdd_stride<<<blocksPerGrid1, threadsPerBlock1>>>(gpu_a, gpu_b, gpu_c, size);
-    CUDA_CHECK_LAST();
-    CUDA_CHECK_SYNC();
+    const int threadsNum = 256;
+    const int needed = (size + threadsNum - 1) / threadsNum;
+    dim3 threadsPerBlock1(threadsNum);
+    dim3 blocksPerGrid1(std::max(1, std::min(needed, getMaxThreadsNum()/threadsNum)));
 
+    TimerScope::Timing t2 = TimerScope::timer_kernel([&]{
+        vecAdd_stride<<<blocksPerGrid1, threadsPerBlock1>>>(gpu_a, gpu_b, gpu_c, size);
+    });
     CUDA_CHECK(cudaMemcpy(cpu_c.data(), gpu_c, size * sizeof(float), cudaMemcpyDeviceToHost));
+    report.add("stride (1 wave)", t2, bytes3, (long long)validation(cpu_a, cpu_b, cpu_c));
 
-    for (auto val : cpu_c)
-    {
-        std::cout << val << " ";
-    }
-    std::cout << std::endl;
+    TimerScope::Timing t3 = TimerScope::timer_kernel([&]{
+        CUDA_CHECK(cudaMemcpyAsync(gpu_c, gpu_a, size * sizeof(float), cudaMemcpyDeviceToDevice));
+    });
+    report.add("memcpy D2D", t3, bytes2, -1);
+
+    report.print(peak);
 
     CUDA_CHECK(cudaFree(gpu_a));
     CUDA_CHECK(cudaFree(gpu_b));
