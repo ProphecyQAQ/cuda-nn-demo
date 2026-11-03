@@ -1,16 +1,18 @@
 # cuda-demos — 构建本目录下所有 demo
 #
-#   make                     编译全部 *.cu
-#   make 05_hash_grid        只编译一个
+#   make                     编译全部 *.cu（产物在 build/）
+#   make vecadd              只编译一个（等价于 make build/vecadd）
 #   make DEBUG=1             带 -g -G（配合 compute-sanitizer 用，很慢）
 #   make ARCH=sm_89          换架构；ARCH=native 让 nvcc 自己识别本机 GPU
 #   make list                看看有哪些 demo
-#   make clean
+#   make clean               删除整个 build/
 #
 # 默认 sm_120（RTX 50 系）。手搓单个 demo 时等价于：
-#   nvcc -O3 -std=c++17 -arch=sm_120 -lineinfo 05_hash_grid.cu -o 05_hash_grid
+#   nvcc -O3 -std=c++17 -arch=sm_120 -lineinfo vecadd.cu -o build/vecadd
 
 .DEFAULT_GOAL := all
+
+BUILD_DIR := build
 
 # ---------------------------------------------------------------------------
 # 工具链：nvcc 不在 PATH 时退回 /usr/local/cuda/bin
@@ -38,34 +40,42 @@ else
   SUFFIX  :=
 endif
 
-SRCS := $(wildcard *.cu)
-BINS := $(addsuffix $(SUFFIX),$(SRCS:.cu=))
+SRCS  := $(wildcard *.cu)
+DEMOS := $(SRCS:.cu=)
+BINS  := $(addprefix $(BUILD_DIR)/,$(addsuffix $(SUFFIX),$(DEMOS)))
 
 # ---------------------------------------------------------------------------
 # 规则
 # ---------------------------------------------------------------------------
 all: $(BINS)
 
-# SUFFIX 为空时就是 "%: %.cu"；DEBUG=1 时是 "%_dbg: %.cu"
-%$(SUFFIX): %.cu
+$(BUILD_DIR):
+	mkdir -p $@
+
+# build/foo: foo.cu
+$(BUILD_DIR)/%$(SUFFIX): %.cu | $(BUILD_DIR)
 	$(NVCC) $(NVFLAGS) $< -o $@
+
+# 便利写法：make foo 等价于 make build/foo
+$(addsuffix $(SUFFIX),$(DEMOS)): %: $(BUILD_DIR)/%
+.PHONY: $(addsuffix $(SUFFIX),$(DEMOS))
 
 # 改 Makefile 后全部重编一次，避免参数变了还用旧产物
 $(BINS): Makefile
 
 clean:
-	rm -f $(SRCS:.cu=) $(addsuffix _dbg,$(SRCS:.cu=))
+	rm -rf $(BUILD_DIR)
 
 list:
 	@echo "demos:"; for f in $(SRCS); do printf '  %s\n' "$$f"; done
 
 help:
 	@echo "usage:"
-	@echo "  make                     build all *.cu"
-	@echo "  make 01_vecadd_bandwidth build one (no .cu suffix)"
+	@echo "  make                     build all *.cu into $(BUILD_DIR)/"
+	@echo "  make vecadd              build one (no .cu suffix)"
 	@echo "  make DEBUG=1             with -g -G, for compute-sanitizer"
 	@echo "  make ARCH=sm_89          override arch (ARCH=native = auto-detect)"
 	@echo "  make list                list sources"
-	@echo "  make clean"
+	@echo "  make clean               remove $(BUILD_DIR)/"
 
 .PHONY: all clean list help
