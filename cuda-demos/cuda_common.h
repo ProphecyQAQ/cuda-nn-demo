@@ -118,3 +118,23 @@ private:
 
     std::vector<Row> m_rows;
 };
+
+int getTotalSMNum()
+{
+    int num = 0;
+    CUDA_CHECK(cudaDeviceGetAttribute(&num, cudaDevAttrMultiProcessorCount, 0));   
+    return num;
+}
+
+int getMaxThreadsNumPerSM()
+{
+    int num = 0;
+    CUDA_CHECK(cudaDeviceGetAttribute(&num, cudaDevAttrMaxThreadsPerMultiProcessor, 0));   
+    return num;
+}
+
+// 全卡同时能驻留多少线程
+int getMaxThreadsNum()
+{
+    return getTotalSMNum() * getMaxThreadsNumPerSM();
+}
