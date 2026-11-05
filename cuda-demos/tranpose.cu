@@ -40,8 +40,8 @@ CheckResult verify(const std::vector<float>& in, const std::vector<float>& out,
 
 __global__ void transpose_native(float* in, float* out, int n)
 {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int x = blockIdx.x;
+    int y = threadIdx.x;
     out[x * n + y] = in[y * n + x];
 }
 
@@ -74,7 +74,13 @@ int main()
     CheckResult c = verify(cpu_in, cpu_out, n, /*transposed=*/true);
     report.add("tiled_pad", t, 2.0 * nbytes, c.ok() ? 0 : c.mismatches);
     if (!c.ok())
+    {
         std::printf("  第一个错: out[%d][%d] = %g, 期望 in[%d][%d] = %g\n",
                     c.bad_y, c.bad_x, c.got, c.bad_x, c.bad_y, c.expect);
-
+    }
+    else
+    {
+        std::printf("  验证通过\n");
+        report.print(getTheoreticalPeakGBs());
+    }
 }
