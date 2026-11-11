@@ -81,8 +81,8 @@ void grid_cpu(float2* table, float* in, float* out, int n_points, int res)
         float dx = x - dw_x;
         float dy = y - dw_y;
 
-        int up_x = (std::min(static_cast<int>(std::ceil(x)), res - 1));
-        int up_y = (std::min(static_cast<int>(std::ceil(y)), res - 1));
+        int up_x = std::min(dw_x + 1, res - 1);
+        int up_y = std::min(dw_y + 1, res - 1);
 
         float2 res_feat = bilinear_interpolation(table[dw_y * res + dw_x], table[up_y * res + dw_x], table[dw_y * res + up_x], table[up_y * res + up_x], dx, dy);
         out[ind * 2] = res_feat.x;
