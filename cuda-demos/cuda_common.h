@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <cuda_runtime.h>
+#include <cuda_fp16.h>
 
 #include "cuda_check.h"
 
